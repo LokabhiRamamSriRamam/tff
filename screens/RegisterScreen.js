@@ -1,53 +1,41 @@
 // RegisterScreen.js
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, Button, StyleSheet } from "react-native";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import firebase, { auth } from "../firebase";
+import { auth } from "../firebase";
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [confirmation, setConfirmation] = useState(null);
+  const [confirm, setConfirm] = useState(null);
   const [message, setMessage] = useState("");
-
-  const recaptchaVerifier = useRef(null);
 
   const sendOTP = async () => {
     try {
-      const confirmationResult = await auth.signInWithPhoneNumber(
-        phone,
-        recaptchaVerifier.current
-      );
-      setConfirmation(confirmationResult);
+      const confirmation = await auth().signInWithPhoneNumber(phone);
+      setConfirm(confirmation);
       setMessage("📩 OTP sent!");
-    } catch (err) {
-      setMessage(err.message);
+    } catch (error) {
+      setMessage(error.message);
     }
   };
 
   const verifyOTP = async () => {
     try {
-      await confirmation.confirm(otp);
+      await confirm.confirm(otp);
       setMessage("✅ Phone verified! You can now register.");
-      // Later: send name, email, phone to backend (JWT signup)
-    } catch (err) {
+      // You can call backend signup API here with name/email/phone
+    } catch (error) {
       setMessage("❌ Invalid OTP.");
     }
   };
 
   return (
     <View style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebase.app().options}
-        attemptInvisibleVerification={true}
-      />
-
       <Text style={styles.title}>Register</Text>
 
-      {!confirmation ? (
+      {!confirm ? (
         <>
           <TextInput
             placeholder="Full Name"
@@ -62,7 +50,7 @@ export default function RegisterScreen({ navigation }) {
             style={styles.input}
           />
           <TextInput
-            placeholder="+1234567890"
+            placeholder="+911234567890"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -100,7 +88,12 @@ export default function RegisterScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: "center" },
   input: { borderWidth: 1, padding: 10, marginVertical: 10, borderRadius: 5 },
-  title: { fontSize: 26, fontWeight: "bold", textAlign: "center", marginBottom: 30 },
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 30,
+  },
   message: { textAlign: "center", marginTop: 20 },
   switchText: { textAlign: "center", marginTop: 20 },
   link: { color: "#007bff", fontWeight: "bold" },

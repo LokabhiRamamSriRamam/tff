@@ -1,5 +1,5 @@
 // screens/LoginScreen.js
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import firebase, { auth } from "../firebase";
+import auth from "@react-native-firebase/auth";
 
 export default function LoginScreen({ navigation }) {
   const [mode, setMode] = useState("password"); // 'password' | 'otp'
@@ -19,52 +18,54 @@ export default function LoginScreen({ navigation }) {
   const [otp, setOtp] = useState("");
   const [confirmation, setConfirmation] = useState(null);
   const [message, setMessage] = useState("");
-  const recaptchaVerifier = useRef(null);
 
-  // --- Normal login (for JWT later)
+  // --- Password login (dummy for now)
   const handleLogin = async () => {
     setMessage("🔐 Attempting password login...");
-    // TODO: Replace with backend API for JWT
+    // TODO: Replace with backend API (JWT-based auth)
     setTimeout(() => {
       setMessage("✅ Logged in successfully!");
-      navigation.replace("Home"); // 👈 Redirect to Home screen after login
+      navigation.replace("Home");
     }, 1000);
   };
 
-  // --- Send OTP
+  // --- Send OTP (React Native Firebase method)
   const sendOTP = async () => {
     try {
-      setMessage("");
-      const confirmationResult = await auth.signInWithPhoneNumber(
-        phone,
-        recaptchaVerifier.current
-      );
+      if (!phone.startsWith("+")) {
+        setMessage("⚠️ Please include your country code (e.g., +91).");
+        return;
+      }
+
+      setMessage("⏳ Sending OTP...");
+      const confirmationResult = await auth().signInWithPhoneNumber(phone);
       setConfirmation(confirmationResult);
       setMessage("📩 OTP sent to your phone!");
-    } catch (err) {
-      setMessage(err.message);
+    } catch (error) {
+      console.error(error);
+      setMessage("❌ Failed to send OTP: " + error.message);
     }
   };
 
   // --- Verify OTP
   const verifyOTP = async () => {
+    if (!confirmation) {
+      setMessage("⚠️ Please request an OTP first.");
+      return;
+    }
+
     try {
       await confirmation.confirm(otp);
       setMessage("✅ Logged in successfully with OTP!");
-      navigation.replace("Home"); // 👈 Redirect after OTP success
-    } catch (err) {
-      setMessage("❌ Invalid OTP.");
+      navigation.replace("Home");
+    } catch (error) {
+      console.error(error);
+      setMessage("❌ Invalid OTP or verification failed.");
     }
   };
 
   return (
     <View style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebase.app().options}
-        attemptInvisibleVerification={true}
-      />
-
       <Text style={styles.title}>Login</Text>
 
       {/* Switch between Password and OTP login */}
